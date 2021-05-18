@@ -6,13 +6,12 @@ from tqdm import tqdm
 
 from utils import time_return
 
-def main(args):
-    with open(os.path.join('C:/Users/fhzh/Desktop/', 'kakao_text.txt'), 'r', encoding='utf8') as f:
+def preprocessing(args):
+    with open(os.path.join(args.data_path, args.data_name+'.txt'), 'r', encoding='utf8') as f:
         kakao_text = f.readlines()
 
     for i, text in enumerate(tqdm(kakao_text)):
         if i == 0:
-            year, month, day = re.findall('\d+', text)
             author, hour, minute, text_list = list(), list(), list(), list()
             text_dat = pd.DataFrame({
                 'year': [],
@@ -23,7 +22,9 @@ def main(args):
                 'minute': [],
                 'text': []
             })
-        if text[:15] == '---------------':
+        elif i in [1,2]:
+            pass
+        elif text[:15] == '---------------':
             year, month, day = re.findall('\d+', text)
             year_list = [year for _ in range(len(text_list))]
             month_list = [month for _ in range(len(text_list))]
@@ -45,12 +46,18 @@ def main(args):
             minute.append(m)
             text_list.append(text.replace('\n', '').strip())
         elif text[0] == '[':
-            text_split = [x.replace('[', '').strip() for x in text.split(']')]
-            author.append(text_split[0])
-            h, m = time_return(text_split[1])
-            hour.append(h)
-            minute.append(m)
-            text_list.append(text_split[2].replace('\n', '').strip())
+            if text[1:3] == '찐교' or text[1:5] == '시여닝❤️':
+                text_split = [x.replace('[', '').strip() for x in text.split(']')]
+                author.append(text_split[0])
+                h, m = time_return(text_split[1])
+                hour.append(h)
+                minute.append(m)
+                text_list.append(text_split[2].replace('\n', '').strip())
+            else:
+                author.append(text_split[0])
+                hour.append(h)
+                minute.append(m)
+                text_list.append(text.replace('\n', '').strip())
         elif text == '':
             continue
         elif text[0] != '[' and text[0] != '-':
@@ -58,12 +65,10 @@ def main(args):
             hour.append(h)
             minute.append(m)
             text_list.append(text.replace('\n', '').strip())
-
+        
     text_dat.index = range(len(text_dat))
-    # emo_ix = text_dat[text_dat['text'] == '이모티콘'].index.tolist()
-    emo_ix = set()
     picture_ix = text_dat[text_dat['text'] == '사진'].index.tolist()
-    text_dat = text_dat.iloc[list(set(text_dat.index) - set(emo_ix) - set(picture_ix))]
+    text_dat = text_dat.iloc[list(set(text_dat.index) - set(picture_ix))]
     text_dat.index = range(len(text_dat))
 
-    text_dat.to_csv(os.path.join('C:/Users/fhzh/Desktop/', 'kakao_text.csv'), index=False)
+    text_dat.to_csv(os.path.join(args.data_path, args.data_name+'_preprocessed.csv'), index=False)
